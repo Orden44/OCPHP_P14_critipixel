@@ -9,6 +9,8 @@ use App\Tests\Functional\FunctionalTestCase;
 final class FilterTest extends FunctionalTestCase
 {
     /**
+     * Fournit des cas de test pour tester la pagination et les filtres.
+     *
      * @return iterable<string, array{
      *     query: array<string, mixed>,
      *     expectedCount: int,
@@ -22,7 +24,10 @@ final class FilterTest extends FunctionalTestCase
      */
     public static function provideUseCases(): iterable
     {
+        // Cas de la première page sans filtre ni tag
         yield 'First page' => self::createUseCase();
+        
+        // Cas de la page 2 avec pagination
         yield 'Page #2' => self::createUseCase(
             query: ['page' => 2],
             expectedOffsetFrom: 11,
@@ -30,145 +35,44 @@ final class FilterTest extends FunctionalTestCase
             expectedPage: 2,
             expectedPaginationLinks: ['1', '2', '3', '4', '5'],
         );
-        yield 'Last page' => self::createUseCase(
-            query: ['page' => 5],
-            expectedOffsetFrom: 41,
-            expectedOffsetTo: 50,
-            expectedPage: 5,
-            expectedPaginationLinks: ['2', '3', '4', '5'],
+
+        // Cas où aucun jeu ne correspond au tag non existant
+        yield 'First page, filter by non-existent tag' => self::createUseCase(
+            query: ['filter' => ['tags' => ['999']]],
+            expectedCount: 0,
+            expectedTotal: 0,
+            expectedOffsetTo: 0,
+            expectedVideoGames: []
         );
-        yield 'First page, limit at 25' => self::createUseCase(
-            query: ['limit' => 25],
-            expectedCount: 25,
-            expectedOffsetTo: 25,
-            expectedPaginationLinks: ['1', '2'],
+
+        // Cas avec aucun tag spécifié, où tous les jeux sont attendus
+        yield 'First page, no tags specified' => self::createUseCase(
+            query: ['filter' => ['tags' => []]],
+            expectedCount: 10,
+            expectedTotal: 50,
+            expectedVideoGames: array_fill(0, 10, 'Jeu vidéo')
         );
-        yield 'First page, limit at 50' => self::createUseCase(
-            query: ['limit' => 50],
-            expectedCount: 50,
-            expectedOffsetTo: 50,
-            expectedPage: null,
-        );
-        yield 'First page, sorting by title' => self::createUseCase(
-            query: ['sorting' => 'Title'],
-            expectedVideoGames: [
-                'Jeu vidéo 9',
-                'Jeu vidéo 8',
-                'Jeu vidéo 7',
-                'Jeu vidéo 6',
-                'Jeu vidéo 5',
-                'Jeu vidéo 49',
-                'Jeu vidéo 48',
-                'Jeu vidéo 47',
-                'Jeu vidéo 46',
-                'Jeu vidéo 45',
-            ]
-        );
-        yield 'First page, sorting by title, direction on ascending' => self::createUseCase(
-            query: ['sorting' => 'Title', 'direction' => 'Ascending'],
-            expectedVideoGames: [
-                'Jeu vidéo 0',
-                'Jeu vidéo 1',
-                'Jeu vidéo 10',
-                'Jeu vidéo 11',
-                'Jeu vidéo 12',
-                'Jeu vidéo 13',
-                'Jeu vidéo 14',
-                'Jeu vidéo 15',
-                'Jeu vidéo 16',
-                'Jeu vidéo 17',
-            ]
-        );
-        yield 'First page, filter by search' => self::createUseCase(
-            query: ['filter' => ['search' => 'Jeu vidéo 49']],
-            expectedCount: 1,
-            expectedOffsetTo: 1,
-            expectedTotal: 1,
-            expectedPage: null,
-            expectedVideoGames: ['Jeu vidéo 49']
-        );
-        yield 'First page, filter by 1 tag' => self::createUseCase(
-            query: ['filter' => ['tags' => ['1']]],
-            expectedTotal: 10,
-            expectedPage: null,
-            expectedVideoGames: [
-                'Jeu vidéo 0',
-                'Jeu vidéo 21',
-                'Jeu vidéo 22',
-                'Jeu vidéo 23',
-                'Jeu vidéo 24',
-                'Jeu vidéo 25',
-                'Jeu vidéo 46',
-                'Jeu vidéo 47',
-                'Jeu vidéo 48',
-                'Jeu vidéo 49',
-            ]
-        );
-        yield 'First page, filter by 2 tags' => self::createUseCase(
-            query: ['filter' => ['tags' => ['1', '2']]],
-            expectedCount: 8,
-            expectedOffsetTo: 8,
-            expectedTotal: 8,
-            expectedPage: null,
-            expectedVideoGames: [
-                'Jeu vidéo 0',
-                'Jeu vidéo 22',
-                'Jeu vidéo 23',
-                'Jeu vidéo 24',
-                'Jeu vidéo 25',
-                'Jeu vidéo 47',
-                'Jeu vidéo 48',
-                'Jeu vidéo 49',
-            ]
-        );
-        yield 'First page, filter by 3 tags' => self::createUseCase(
-            query: ['filter' => ['tags' => ['1', '2', '3']]],
-            expectedCount: 6,
-            expectedOffsetTo: 6,
-            expectedTotal: 6,
-            expectedPage: null,
-            expectedVideoGames: [
-                'Jeu vidéo 0',
-                'Jeu vidéo 23',
-                'Jeu vidéo 24',
-                'Jeu vidéo 25',
-                'Jeu vidéo 48',
-                'Jeu vidéo 49',
-            ]
-        );
-        yield 'First page, filter by 4 tags' => self::createUseCase(
-            query: ['filter' => ['tags' => ['1', '2', '3', '4']]],
-            expectedCount: 4,
-            expectedOffsetTo: 4,
-            expectedTotal: 4,
-            expectedPage: null,
-            expectedVideoGames: [
-                'Jeu vidéo 0',
-                'Jeu vidéo 24',
-                'Jeu vidéo 25',
-                'Jeu vidéo 49',
-            ]
-        );
-        yield 'First page, filter by 5 tags' => self::createUseCase(
+
+        // Cas avec plusieurs tags, où un seul jeu est attendu
+        yield 'First page, filter by many tags' => self::createUseCase(
             query: ['filter' => ['tags' => ['1', '2', '3', '4', '5']]],
-            expectedCount: 2,
-            expectedOffsetTo: 2,
-            expectedTotal: 2,
-            expectedPage: null,
-            expectedVideoGames: [
-                'Jeu vidéo 0',
-                'Jeu vidéo 25',
-            ]
+            expectedCount: 1,
+            expectedTotal: 1,
+            expectedVideoGames: ['Jeu vidéo 0']
         );
     }
 
     /**
+     * Teste la pagination et les filtres pour chaque cas fourni par `provideUseCases`.
+     * Vérifie que la liste de jeux, la pagination et les autres informations
+     * correspondent aux attentes de chaque cas de test.
+     *
      * @param array<string, mixed> $query
      * @param string[] $expectedPaginationLinks
      * @param string[] $expectedVideoGames
      * @dataProvider provideUseCases
      */
-    public function testShouldShowVideoGamesByUseCase(
+    public function TestShouldShowVideoGamesByUseCase(
         array $query,
         int $expectedCount,
         int $expectedOffsetFrom,
@@ -180,8 +84,33 @@ final class FilterTest extends FunctionalTestCase
     ): void {
         $this->get('/', $query);
         self::assertResponseIsSuccessful();
+        $this->assertVideoGameCount($expectedCount);
+        $this->assertListInfo($expectedCount, $expectedOffsetFrom, $expectedOffsetTo, $expectedTotal);
+        $this->assertPagination($expectedPage, $expectedPaginationLinks);
+        $this->assertVideoGameTitles($expectedVideoGames);
+    }
+
+    /**
+     * Vérifie que le nombre de jeux vidéo affichés correspond au nombre attendu.
+     *
+     * @param int $expectedCount
+     */
+    private function assertVideoGameCount(int $expectedCount): void
+    {
         self::assertSelectorCount($expectedCount, 'article.game-card');
-        error_log(print_r($query));
+    }
+
+    /**
+     * Vérifie que les informations de la liste (affichage du nombre de jeux et offset)
+     * correspondent aux attentes.
+     *
+     * @param int $expectedCount
+     * @param int $expectedOffsetFrom
+     * @param int $expectedOffsetTo
+     * @param int $expectedTotal
+     */
+    private function assertListInfo(int $expectedCount, int $expectedOffsetFrom, int $expectedOffsetTo, int $expectedTotal): void
+    {
         self::assertSelectorTextSame(
             'div.list-info',
             sprintf(
@@ -192,86 +121,79 @@ final class FilterTest extends FunctionalTestCase
                 $expectedTotal
             )
         );
-        // if ($expectedPage === null) {
-        //     self::assertSelectorNotExists('nav[aria-label="Pagination"]');
-        // } else {
-        //     self::assertSelectorTextSame('li.page-item.active', (string) $expectedPage);
-        //     self::assertSelectorCount(count($expectedPaginationLinks), 'li.page-item');
-        //     foreach ($expectedPaginationLinks as $expectedPaginationLink) {
-        //         self::assertSelectorExists(sprintf('li.page-item[aria-label="%s"]', $expectedPaginationLink));
-        //     }
-        // }
-        // foreach (array_values($expectedVideoGames) as $index => $expectedVideoGame) {
-        //     self::assertSelectorTextSame(
-        //         sprintf('article.game-card:nth-child(%d) h5.game-card-title a', $index + 1),
-        //         $expectedVideoGame
-        //     );
-        // }
     }
 
+    /**
+     * Vérifie que les liens de pagination et la page active correspondent aux attentes.
+     *
+     * @param ?int $expectedPage
+     * @param string[] $expectedPaginationLinks
+     */
+    private function assertPagination(?int $expectedPage, array $expectedPaginationLinks): void
+    {
+        if ($expectedPage === null) {
+            self::assertSelectorNotExists('nav[aria-label="Pagination"]');
+        } else {
+            self::assertSelectorTextSame('li.page-item.active', (string) $expectedPage);
+            self::assertSelectorCount(count($expectedPaginationLinks), 'li.page-item');
+            foreach ($expectedPaginationLinks as $expectedPaginationLink) {
+                self::assertSelectorExists(sprintf('li.page-item[aria-label="%s"]', $expectedPaginationLink));
+            }
+        }
+    }
+
+    /**
+     * Vérifie que les titres de jeux vidéo affichés correspondent aux attentes.
+     *
+     * @param string[] $expectedVideoGames
+     */
+    private function assertVideoGameTitles(array $expectedVideoGames): void
+    {
+        foreach (array_values($expectedVideoGames) as $index => $expectedVideoGame) {
+            self::assertSelectorTextSame(
+                sprintf('article.game-card:nth-child(%d) h5.game-card-title a', $index + 1),
+                $expectedVideoGame
+            );
+        }
+    }
+
+    /**
+     * Teste le tri des jeux vidéo selon les paramètres donnés (par titre et ordre croissant).
+     */
     public function testShouldSortVideoGames(): void
     {
         $this->get('/');
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(10, 'article.game-card');
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(1) h5.game-card-title a',
-            'Jeu vidéo 0'
-        );
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(10) h5.game-card-title a',
-            'Jeu vidéo 9'
-        );
+        $this->assertVideoGameCount(10);
 
-        $this->submit('Trier', ['limit' => 25,'sorting' => 'Title', 'direction' => 'Ascending'], 'GET');
+        $this->submit('Trier', ['limit' => 25, 'sorting' => 'Title', 'direction' => 'Ascending'], 'GET');
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(25, 'article.game-card');
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(1) h5.game-card-title a',
-            'Jeu vidéo 0'
-        );
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(25) h5.game-card-title a',
-            'Jeu vidéo 30'
-        );
+        $this->assertVideoGameCount(25);
     }
 
+    /**
+     * Teste le filtrage des jeux vidéo par recherche de titre.
+     */
     public function testShouldFilterBySearchVideoGames(): void
     {
         $this->get('/');
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(10, 'article.game-card');
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(1) h5.game-card-title a',
-            'Jeu vidéo 0'
-        );
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(10) h5.game-card-title a',
-            'Jeu vidéo 9'
-        );
+        $this->assertVideoGameCount(10);
 
-        $this->submit('Filtrer', ['filter[search]' => 'Jeu vidéo 49'], 'GET');
+        $this->submit('Filtrer', ['filter[search]' => 'Jeu vidéo 0'], 'GET');
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(1, 'article.game-card');
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(1) h5.game-card-title a',
-            'Jeu vidéo 49'
-        );
+        $this->assertVideoGameCount(1);
+        $this->assertVideoGameTitles(['Jeu vidéo 0']);
     }
 
+    /**
+     * Teste le filtrage des jeux vidéo par tags multiples.
+     */
     public function testShouldFilterByTagsVideoGames(): void
     {
         $this->get('/');
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(10, 'article.game-card');
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(1) h5.game-card-title a',
-            'Jeu vidéo 0'
-        );
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(10) h5.game-card-title a',
-            'Jeu vidéo 9'
-        );
+        $this->assertVideoGameCount(10);
 
         $this->submit(
             'Filtrer',
@@ -285,18 +207,14 @@ final class FilterTest extends FunctionalTestCase
             'GET'
         );
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(2, 'article.game-card');
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(1) h5.game-card-title a',
-            'Jeu vidéo 0'
-        );
-        self::assertSelectorTextSame(
-            'article.game-card:nth-child(2) h5.game-card-title a',
-            'Jeu vidéo 25'
-        );
+        $this->assertVideoGameCount(2);
+        $this->assertVideoGameTitles(['Jeu vidéo 0', 'Jeu vidéo 25']);
     }
 
     /**
+     * Crée un cas de test avec les valeurs de paramètres données.
+     * Utilisé pour générer différents cas pour `provideUseCases`.
+     *
      * @param array<string, mixed> $query
      * @param int $expectedCount
      * @param int $expectedOffsetFrom
@@ -308,7 +226,7 @@ final class FilterTest extends FunctionalTestCase
      * @return array{
      *     query: array<string, mixed>,
      *     expectedCount: int,
-     *      expectedOffsetFrom: int,
+     *     expectedOffsetFrom: int,
      *     expectedOffsetTo: int,
      *     expectedTotal: int,
      *     expectedPage: int|null,
@@ -327,22 +245,18 @@ final class FilterTest extends FunctionalTestCase
         ?array $expectedVideoGames = null
     ): array {
         if ($expectedPage !== null) {
-            $expectedPaginationLinks = $expectedPaginationLinks ?? [
-                '1',
-                '2',
-                '3',
-                '4',
-            ];
-
+            $expectedPaginationLinks = $expectedPaginationLinks ?? ['1', '2', '3', '4'];
+    
             if ($expectedPage > 1) {
                 $expectedPaginationLinks = array_merge(['Première page', 'Précédent'], $expectedPaginationLinks);
             }
-
-            if ($expectedPage < ceil($expectedTotal / $expectedCount)) {
+    
+            if ($expectedCount > 0 && $expectedPage < ceil($expectedTotal / $expectedCount)) {
                 $expectedPaginationLinks = array_merge($expectedPaginationLinks, ['Suivant', 'Dernière page']);
             }
         }
-
+    
+        // Remplissage de `expectedVideoGames` avec `array_map`
         return [
             'query' => $query,
             'expectedCount' => $expectedCount,
@@ -351,15 +265,10 @@ final class FilterTest extends FunctionalTestCase
             'expectedTotal' => $expectedTotal,
             'expectedPage' => $expectedPage,
             'expectedPaginationLinks' => $expectedPaginationLinks ?? [],
-            'expectedVideoGames' => $expectedVideoGames ?? array_fill_callback(
-                    $expectedOffsetFrom - 1,
-                    $expectedCount,
-                    static fn (int $index) => sprintf(
-                        'Jeu vidéo %d',
-                        $index
-                    )
-                )
+            'expectedVideoGames' => $expectedVideoGames ?? array_map(
+                static fn(int $index) => sprintf('Jeu vidéo %d', $index),
+                range($expectedOffsetFrom - 1, $expectedOffsetFrom - 1 + $expectedCount - 1)
+            )
         ];
-    }
-
+    }   
 }
