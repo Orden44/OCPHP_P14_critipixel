@@ -58,7 +58,7 @@ final class VideoGameFixtures extends Fixture implements DependentFixtureInterfa
         $manager->flush();
 
         array_walk($videoGames, function (VideoGame $videoGame, int $index) use ($users, $manager) {
-            $filteredUsers = $users[$index % 5];    
+            $filteredUsers = $users[$index % 5];
 
             foreach ($filteredUsers as $i => $user) {
                 /** @var string $comment */
