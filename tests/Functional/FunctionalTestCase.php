@@ -26,15 +26,21 @@ abstract class FunctionalTestCase extends WebTestCase
     }
 
     /**
-     * @template T
+     * @template T of object
      * @param class-string<T> $id
      * @return T
      */
     protected function service(string $id): object
     {
-        return $this->client->getContainer()->get($id);
+        /** @var null|T $service */
+        $service = $this->client->getContainer()->get($id);
+        self::assertNotNull($service);
+        return $service;
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     protected function get(string $uri, array $parameters = []): Crawler
     {
         return $this->client->request('GET', $uri, $parameters);
@@ -46,4 +52,13 @@ abstract class FunctionalTestCase extends WebTestCase
 
         $this->client->loginUser($user);
     }
+
+    /**
+     * @param array<string, mixed> $formData
+     */
+    protected function submit(string $button, array $formData = [], string $method = 'POST'): Crawler
+    {
+        return $this->client->submitForm($button, $formData, $method);
+    }
+
 }
